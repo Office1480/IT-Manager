@@ -1,0 +1,643 @@
+// IT Manager — modèle de données
+// Multi-tenant : chaque entité métier porte un organizationId.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Organisation, comptes, rôles
+// ─────────────────────────────────────────────────────────────
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  country   String   @default("IL")
+  currency  String   @default("ILS")
+  locale    String   @default("fr")
+  // 0 = dimanche (Israël), 1 = lundi
+  weekStart Int      @default(0)
+  // jours travaillés (0=dim … 6=sam)
+  workDays  Int[]    @default([0, 1, 2, 3, 4])
+  createdAt DateTime @default(now())
+
+  memberships      Membership[]
+  departments      Department[]
+  employees        Employee[]
+  compensation     CompensationEvent[]
+  documents        Document[]
+  auditLogs        AuditLog[]
+  suppliers        Supplier[]
+  assets           Asset[]
+  assignments      AssetAssignment[]
+  leaveTypes       LeaveType[]
+  leaveRequests    LeaveRequest[]
+  leaveAdjustments LeaveAdjustment[]
+  holidays         Holiday[]
+  advances         SalaryAdvance[]
+  projects         Project[]
+  backlogItems     BacklogItem[]
+  backlogComments  BacklogComment[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  locale       String?
+  createdAt    DateTime @default(now())
+  lastLoginAt  DateTime?
+
+  memberships Membership[]
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  HR
+  MANAGER
+  EMPLOYEE
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           Role         @default(EMPLOYEE)
+  employeeId     String?      @unique
+  createdAt      DateTime     @default(now())
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee       Employee?    @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, organizationId])
+}
+
+model AuditLog {
+  id             String       @id @default(cuid())
+  organizationId String
+  actorId        String?
+  actorName      String?
+  action         String
+  entityType     String
+  entityId       String?
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, entityType, entityId])
+  @@index([organizationId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+// RH : collaborateurs
+// ─────────────────────────────────────────────────────────────
+
+model Department {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  color          String       @default("#6366f1")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employees      Employee[]
+
+  @@unique([organizationId, name])
+}
+
+enum EmployeeStatus {
+  ONBOARDING
+  ACTIVE
+  OFFBOARDING
+  OFFBOARDED
+}
+
+enum ContractType {
+  PERMANENT
+  FIXED_TERM
+  FREELANCE
+  INTERN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  UNDISCLOSED
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+  PARTNERSHIP
+}
+
+model Employee {
+  id             String         @id @default(cuid())
+  organizationId String
+  employeeNumber String
+  status         EmployeeStatus @default(ACTIVE)
+
+  // Identité
+  firstName     String
+  lastName      String
+  firstNameHe   String?
+  lastNameHe    String?
+  birthDate     DateTime?      @db.Date
+  gender        Gender?
+  nationality   String?
+  maritalStatus MaritalStatus?
+  childrenCount Int?
+  // Champs chiffrés (AES-256-GCM)
+  nationalIdEnc String?
+  nationalIdLast4 String?
+  passportEnc   String?
+
+  // Contact
+  email             String
+  personalEmail     String?
+  phone             String?
+  addressStreet     String?
+  addressCity       String?
+  addressZip        String?
+  addressCountry    String?
+  emergencyName     String?
+  emergencyPhone    String?
+  emergencyRelation String?
+
+  // Banque (chiffré)
+  bankName       String?
+  bankBranch     String?
+  bankAccountEnc String?
+
+  // Poste
+  jobTitle         String?
+  departmentId     String?
+  managerId        String?
+  startDate        DateTime?    @db.Date
+  endDate          DateTime?    @db.Date
+  contractType     ContractType @default(PERMANENT)
+  workPercentage   Int          @default(100)
+  workLocation     String?
+  seniorityDate    DateTime?    @db.Date
+
+  // Avantages sociaux (Israël)
+  pensionFund          String?
+  pensionEmployeeRate  Decimal? @db.Decimal(5, 2)
+  pensionEmployerRate  Decimal? @db.Decimal(5, 2)
+  severanceRate        Decimal? @db.Decimal(5, 2)
+  kerenHishtalmut      Boolean  @default(false)
+  kerenEmployeeRate    Decimal? @db.Decimal(5, 2)
+  kerenEmployerRate    Decimal? @db.Decimal(5, 2)
+
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department   Department?         @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  manager      Employee?           @relation("Reports", fields: [managerId], references: [id], onDelete: SetNull)
+  reports      Employee[]          @relation("Reports")
+  membership   Membership?
+  compensation CompensationEvent[]
+  documents    Document[]
+  assignments  AssetAssignment[]
+  leaveRequests    LeaveRequest[]
+  leaveAdjustments LeaveAdjustment[]
+  advances         SalaryAdvance[]
+  ownedProjects    Project[]         @relation("ProjectOwner")
+  deputyProjects   Project[]         @relation("ProjectDeputy")
+  backlogItems     BacklogItem[]
+  backlogComments  BacklogComment[]
+
+  @@unique([organizationId, employeeNumber])
+  @@index([organizationId, status])
+  @@index([organizationId, lastName])
+}
+
+enum CompensationType {
+  HIRE
+  RAISE
+  PROMOTION
+  ADJUSTMENT
+  BONUS
+  HAVRAA
+}
+
+model CompensationEvent {
+  id             String           @id @default(cuid())
+  organizationId String
+  employeeId     String
+  type           CompensationType
+  effectiveDate  DateTime         @db.Date
+  // Salaire mensuel brut après l'événement (null pour une prime ponctuelle)
+  baseSalary     Decimal?         @db.Decimal(12, 2)
+  // Montant ponctuel (prime, havraa)
+  amount         Decimal?         @db.Decimal(12, 2)
+  currency       String           @default("ILS")
+  jobTitle       String?
+  reason         String?
+  decidedBy      String?
+  createdById    String?
+  createdAt      DateTime         @default(now())
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee       Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId, effectiveDate])
+}
+
+enum DocumentCategory {
+  ID_CARD
+  PASSPORT
+  CONTRACT
+  CONTRACT_ANNEX
+  FORM_101
+  PAYSLIP
+  DIPLOMA
+  CERTIFICATE
+  MEDICAL
+  BANK
+  PURCHASE_PROOF
+  HANDOVER_FORM
+  RETURN_FORM
+  WARRANTY
+  OTHER
+}
+
+model Document {
+  id             String           @id @default(cuid())
+  organizationId String
+  employeeId     String?
+  assetId        String?
+  category       DocumentCategory
+  title          String
+  fileName       String
+  mimeType       String
+  size           Int
+  storageKey     String           @unique
+  sha256         String
+  expiresAt      DateTime?        @db.Date
+  uploadedById   String?
+  uploadedByName String?
+  createdAt      DateTime         @default(now())
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee       Employee?        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  asset          Asset?           @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, employeeId])
+  @@index([organizationId, assetId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Matériel
+// ─────────────────────────────────────────────────────────────
+
+model Supplier {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  contactName    String?
+  email          String?
+  phone          String?
+  website        String?
+  notes          String?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assets         Asset[]
+
+  @@unique([organizationId, name])
+}
+
+enum AssetCategory {
+  LAPTOP
+  DESKTOP
+  MONITOR
+  KEYBOARD
+  MOUSE
+  HEADSET
+  DOCKING
+  PHONE
+  TABLET
+  PRINTER
+  NETWORK
+  SERVER
+  ACCESSORY
+  OTHER
+}
+
+enum AssetStatus {
+  IN_STOCK
+  ASSIGNED
+  IN_REPAIR
+  LOST
+  RETIRED
+}
+
+enum AssetCondition {
+  NEW
+  GOOD
+  FAIR
+  DAMAGED
+}
+
+model Asset {
+  id               String         @id @default(cuid())
+  organizationId   String
+  assetTag         String
+  category         AssetCategory
+  brand            String
+  model            String
+  serialNumber     String
+  specs            String?
+  status           AssetStatus    @default(IN_STOCK)
+  condition        AssetCondition @default(NEW)
+  purchaseDate     DateTime?      @db.Date
+  purchasePrice    Decimal?       @db.Decimal(12, 2)
+  currency         String         @default("ILS")
+  invoiceNumber    String?
+  supplierId       String?
+  warrantyEndDate  DateTime?      @db.Date
+  warrantyProvider String?
+  warrantyContact  String?
+  warrantyEmail    String?
+  warrantyPhone    String?
+  warrantyUrl      String?
+  // Coût refacturé en cas de perte / casse
+  replacementCost  Decimal?       @db.Decimal(12, 2)
+  location         String?
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  supplier         Supplier?      @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  assignments      AssetAssignment[]
+  documents        Document[]
+
+  @@unique([organizationId, assetTag])
+  @@unique([organizationId, serialNumber])
+  @@index([organizationId, status])
+  @@index([organizationId, warrantyEndDate])
+}
+
+model AssetAssignment {
+  id              String          @id @default(cuid())
+  organizationId  String
+  assetId         String
+  employeeId      String
+  assignedAt      DateTime        @default(now())
+  expectedReturn  DateTime?       @db.Date
+  liabilityAmount Decimal?        @db.Decimal(12, 2)
+  conditionOut    AssetCondition  @default(GOOD)
+  notesOut        String?
+  // Signature de prise en charge
+  signedAt        DateTime?
+  signerName      String?
+  signature       String?         @db.Text
+  handoverDocId   String?
+  // Restitution
+  returnedAt      DateTime?
+  conditionIn     AssetCondition?
+  notesIn         String?
+  returnSignedAt  DateTime?
+  returnSignature String?         @db.Text
+  returnDocId     String?
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  asset           Asset           @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  employee        Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, employeeId])
+  @@index([assetId, returnedAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Congés & avances
+// ─────────────────────────────────────────────────────────────
+
+enum LeaveUnit {
+  DAY
+  HALF_DAY
+}
+
+model LeaveType {
+  id               String       @id @default(cuid())
+  organizationId   String
+  code             String
+  // { fr, en, he }
+  names            Json
+  color            String
+  paid             Boolean      @default(true)
+  requiresApproval Boolean      @default(true)
+  requiresDocument Boolean      @default(false)
+  // Solde suivi (congés annuels, maladie) ou non (sans solde, miluim…)
+  tracksBalance    Boolean      @default(false)
+  // Imputation sur le solde d'un autre type (ex : maladie enfant → maladie)
+  deductsFromCode  String?
+  // Acquisition mensuelle (jours) — null = calcul légal / pas d'acquisition
+  accrualPerMonth  Decimal?     @db.Decimal(5, 2)
+  maxBalance       Decimal?     @db.Decimal(6, 2)
+  statutory        Boolean      @default(false)
+  active           Boolean      @default(true)
+  position         Int          @default(0)
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requests         LeaveRequest[]
+  adjustments      LeaveAdjustment[]
+
+  @@unique([organizationId, code])
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model LeaveRequest {
+  id             String        @id @default(cuid())
+  organizationId String
+  employeeId     String
+  leaveTypeId    String
+  startDate      DateTime      @db.Date
+  endDate        DateTime      @db.Date
+  startHalf      Boolean       @default(false)
+  endHalf        Boolean       @default(false)
+  days           Decimal       @db.Decimal(5, 1)
+  status         RequestStatus @default(PENDING)
+  reason         String?
+  reviewerId     String?
+  reviewerName   String?
+  reviewedAt     DateTime?
+  reviewNote     String?
+  documentId     String?
+  createdAt      DateTime      @default(now())
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee       Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType      LeaveType     @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, startDate, endDate])
+  @@index([employeeId, status])
+}
+
+model LeaveAdjustment {
+  id             String       @id @default(cuid())
+  organizationId String
+  employeeId     String
+  leaveTypeId    String
+  days           Decimal      @db.Decimal(6, 2)
+  reason         String
+  effectiveDate  DateTime     @db.Date
+  createdById    String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee       Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  leaveType      LeaveType    @relation(fields: [leaveTypeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId, leaveTypeId])
+}
+
+enum HolidayKind {
+  HOLIDAY
+  EVE
+}
+
+model Holiday {
+  id             String       @id @default(cuid())
+  organizationId String
+  date           DateTime     @db.Date
+  names          Json
+  kind           HolidayKind  @default(HOLIDAY)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, date])
+}
+
+model SalaryAdvance {
+  id                String        @id @default(cuid())
+  organizationId    String
+  employeeId        String
+  amount            Decimal       @db.Decimal(12, 2)
+  currency          String        @default("ILS")
+  reason            String?
+  installments      Int           @default(1)
+  firstDeduction    DateTime      @db.Date
+  status            RequestStatus @default(PENDING)
+  reviewerId        String?
+  reviewerName      String?
+  reviewedAt        DateTime?
+  reviewNote        String?
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee          Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Projets, ownership, backlog d'idéation
+// ─────────────────────────────────────────────────────────────
+
+enum ProjectStatus {
+  ACTIVE
+  BUILD
+  MAINTENANCE
+  SUNSET
+}
+
+enum Criticality {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model Project {
+  id              String        @id @default(cuid())
+  organizationId  String
+  key             String
+  name            String
+  tagline         String?
+  definition      String?       @db.Text
+  status          ProjectStatus @default(ACTIVE)
+  criticality     Criticality   @default(MEDIUM)
+  color           String        @default("#6366f1")
+  ownerId         String?
+  ownerExpertise  Int           @default(5)
+  deputyId        String?
+  deputyExpertise Int           @default(3)
+  // [{ label, url }]
+  links           Json?
+  jiraProjectKey  String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner           Employee?     @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  deputy          Employee?     @relation("ProjectDeputy", fields: [deputyId], references: [id], onDelete: SetNull)
+  backlog         BacklogItem[]
+
+  @@unique([organizationId, key])
+}
+
+enum BacklogStage {
+  IDEA
+  SCOPING
+  DEFINITION
+  REVIEW
+  VALIDATED
+  IN_JIRA
+  REJECTED
+}
+
+model BacklogItem {
+  id             String       @id @default(cuid())
+  organizationId String
+  projectId      String
+  number         Int
+  title          String
+  problem        String?      @db.Text
+  proposal       String?      @db.Text
+  acceptance     String?      @db.Text
+  stage          BacklogStage @default(IDEA)
+  // Scoring RICE
+  reach          Int?
+  impact         Decimal?     @db.Decimal(3, 1)
+  confidence     Int?
+  effort         Decimal?     @db.Decimal(5, 1)
+  authorId       String?
+  jiraKey        String?
+  jiraUrl        String?
+  position       Float        @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  stageChangedAt DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author         Employee?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  comments       BacklogComment[]
+
+  @@unique([projectId, number])
+  @@index([organizationId, stage])
+}
+
+model BacklogComment {
+  id             String       @id @default(cuid())
+  organizationId String
+  itemId         String
+  authorId       String?
+  authorName     String
+  body           String       @db.Text
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  item           BacklogItem  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  author         Employee?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([itemId, createdAt])
+}

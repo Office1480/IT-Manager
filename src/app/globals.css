@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --bg: #fafafa;
+  --bg-subtle: #f4f4f5;
+  --surface: #ffffff;
+  --surface-hover: #f6f6f7;
+  --border: #e7e7ea;
+  --border-strong: #d4d4d8;
+  --fg: #18181b;
+  --fg-muted: #52525b;
+  --fg-subtle: #8b8b94;
+  --accent: #5b5bd6;
+  --accent-hover: #4a4ac4;
+  --accent-soft: #eeeefc;
+  --accent-fg: #ffffff;
+  --success: #12a150;
+  --success-soft: #e7f6ed;
+  --warning: #d97706;
+  --warning-soft: #fdf3e2;
+  --danger: #e5484d;
+  --danger-soft: #fdecec;
+  --info: #0b84d8;
+  --info-soft: #e6f2fb;
+  --ring: rgba(91, 91, 214, 0.35);
+  --shadow-sm: 0 1px 2px rgba(16, 16, 24, 0.04), 0 1px 1px rgba(16, 16, 24, 0.03);
+  --shadow-md: 0 8px 24px -6px rgba(16, 16, 24, 0.12), 0 2px 6px rgba(16, 16, 24, 0.05);
+  --shadow-lg: 0 24px 64px -12px rgba(16, 16, 24, 0.25);
+}
+
+.dark {
+  --bg: #0b0b0e;
+  --bg-subtle: #111115;
+  --surface: #141418;
+  --surface-hover: #1b1b21;
+  --border: #25252c;
+  --border-strong: #33333c;
+  --fg: #ededf0;
+  --fg-muted: #a1a1aa;
+  --fg-subtle: #71717a;
+  --accent: #7b7bf0;
+  --accent-hover: #8e8ef5;
+  --accent-soft: #1d1d3a;
+  --accent-fg: #ffffff;
+  --success: #3dd68c;
+  --success-soft: #0f2a1d;
+  --warning: #f5a524;
+  --warning-soft: #2c210b;
+  --danger: #ff6369;
+  --danger-soft: #2f1416;
+  --info: #52a9ff;
+  --info-soft: #0e2236;
+  --ring: rgba(123, 123, 240, 0.45);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px -6px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 24px 64px -12px rgba(0, 0, 0, 0.7);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-fg: var(--accent-fg);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --font-sans: "Inter", "Segoe UI", "Rubik", "Assistant", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-feature-settings: "cv11", "ss01";
+  }
+  ::selection {
+    background: var(--accent-soft);
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0.55;
+    cursor: pointer;
+  }
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  .animate-in {
+    animation: fade-in 160ms ease-out;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
