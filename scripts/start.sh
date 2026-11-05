@@ -3,7 +3,9 @@
 set -e
 mkdir -p "${STORAGE_DIR:-/data/storage}"
 npx prisma migrate deploy
-if [ "$SEED_DEMO" = "true" ]; then
+if [ "$SEED_DEMO" = "reset" ]; then
+  echo "SEED_DEMO=reset : réinitialisation des données de démo"; npx tsx prisma/seed.ts
+elif [ "$SEED_DEMO" = "true" ]; then
   USERS=$(node -e "const{PrismaClient}=require('@prisma/client');const p=new PrismaClient();p.user.count().then(c=>{console.log(c);return p.\$disconnect()})")
   if [ "$USERS" = "0" ]; then echo "Base vide : chargement des données de démo"; npx tsx prisma/seed.ts; fi
 fi

@@ -26,9 +26,15 @@ export function decryptText(value: string | null | undefined): string | null {
   if (!value) return null;
   const [v, iv, tag, payload] = value.split(":");
   if (v !== "v1") return null;
-  const decipher = createDecipheriv("aes-256-gcm", key(), Buffer.from(iv, "base64"));
-  decipher.setAuthTag(Buffer.from(tag, "base64"));
-  return Buffer.concat([decipher.update(Buffer.from(payload, "base64")), decipher.final()]).toString("utf8");
+  try {
+    const decipher = createDecipheriv("aes-256-gcm", key(), Buffer.from(iv, "base64"));
+    decipher.setAuthTag(Buffer.from(tag, "base64"));
+    return Buffer.concat([decipher.update(Buffer.from(payload, "base64")), decipher.final()]).toString("utf8");
+  } catch {
+    // Clé différente de celle utilisée au chiffrement : on n'interrompt pas la page.
+    console.error("decryptText: échec du déchiffrement (ENCRYPTION_KEY modifiée ?)");
+    return null;
+  }
 }
 
 export function encryptBuffer(data: Buffer): Buffer {
