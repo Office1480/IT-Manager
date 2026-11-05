@@ -35,7 +35,10 @@ export async function getContext() {
 export async function requireContext(permission?: Permission) {
   const ctx = await loadContext();
   if (!ctx) redirect("/login");
-  if (permission && !ctx.can(permission)) throw new ForbiddenError(permission);
+  if (permission && !ctx.can(permission)) {
+    const { getLocale } = await import("next-intl/server");
+    redirect(`/${await getLocale()}/forbidden`);
+  }
   return ctx;
 }
 

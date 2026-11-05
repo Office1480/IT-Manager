@@ -10,6 +10,7 @@ import { requireContext } from "./context";
 import { audit } from "./audit";
 import { bool, date, dec, int, oneOf, reqStr, str } from "./form";
 import { nextEmployeeNumber } from "./employees";
+import { ensureChecklist } from "./checklists";
 import type { ActionResult } from "./action-result";
 
 const STATUSES = ["ONBOARDING", "ACTIVE", "OFFBOARDING", "OFFBOARDED"] as const;
@@ -114,6 +115,7 @@ export async function createEmployeeAction(fd: FormData): Promise<ActionResult<{
     },
   });
   await audit(ctx, "employee.create", "employee", employee.id, { name: `${employee.firstName} ${employee.lastName}` });
+  await autoChecklist(ctx.orgId, employee.id, employee.status);
   revalidatePath("/[locale]/(app)", "layout");
   return { ok: true, data: { id: employee.id } };
 }
@@ -153,8 +155,16 @@ export async function updateEmployeeAction(id: string, fd: FormData): Promise<Ac
     },
   });
   await audit(ctx, "employee.update", "employee", id, { fields: changed });
+  if (data.status !== existing.status) await autoChecklist(ctx.orgId, id, data.status);
   revalidatePath("/[locale]/(app)", "layout");
   return { ok: true, data: { id } };
+}
+
+/** Génère automatiquement la checklist quand un collaborateur entre en intégration ou en départ. */
+async function autoChecklist(orgId: string, employeeId: string, status: string) {
+  if (status !== "ONBOARDING" && status !== "OFFBOARDING") return;
+  const t = await getTranslations("checklist");
+  await ensureChecklist(orgId, employeeId, status, { returnAsset: (name) => t("returnAsset", { name }), revokeLicense: (name) => t("revokeLicense", { name }) });
 }
 
 export async function archiveEmployeeAction(id: string): Promise<ActionResult> {

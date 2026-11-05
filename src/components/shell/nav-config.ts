@@ -1,4 +1,4 @@
-import { BarChart3, Boxes, CalendarDays, FolderKanban, HandCoins, Lightbulb, Network, ScrollText, Settings, Users, Workflow } from "lucide-react";
+import { AppWindow, BarChart3, Boxes, CalendarDays, FolderKanban, HandCoins, Lightbulb, Network, ScrollText, Settings, Users, Workflow } from "lucide-react";
 import type { Permission } from "@/lib/rbac";
 
 export type NavItem = { key: string; href: string; icon: typeof Users; permission?: Permission };
@@ -15,7 +15,13 @@ export const NAV: NavGroup[] = [
       { key: "advances", href: "/advances", icon: HandCoins },
     ],
   },
-  { key: "equipment", items: [{ key: "assets", href: "/assets", icon: Boxes, permission: "asset.read" }] },
+  {
+    key: "equipment",
+    items: [
+      { key: "assets", href: "/assets", icon: Boxes, permission: "asset.read" },
+      { key: "licenses", href: "/licenses", icon: AppWindow, permission: "asset.read" },
+    ],
+  },
   {
     key: "projects",
     items: [

@@ -52,7 +52,21 @@ src/lib/                crypto, stockage, session, rbac, formatage
 ## Roadmap
 
 - [x] **Phase 1** — Fondations, collaborateurs, documents chiffrés, historique de rémunération, dashboard, ⌘K
-- [ ] **Phase 2** — Inventaire matériel, attribution avec signature électronique, garanties
-- [ ] **Phase 3** — Congés (droit israélien), avances, planning d'équipe
-- [ ] **Phase 4** — Projets, carte des responsabilités, backlog d'idéation → Jira
-- [ ] **Phase 5** — Alertes bus factor, onboarding/offboarding, licences SaaS
+- [x] **Phase 2** — Inventaire matériel, attribution avec signature électronique (PDF signé), restitution, garanties, étiquettes QR
+- [x] **Phase 3** — Congés (barème légal israélien, fêtes, demi-journées), planning d'équipe, validations, avances + export paie
+- [x] **Phase 4** — Projets, owner/suppléant & expertise, carte des responsabilités, backlog d'idéation (Kanban, RICE) → Jira
+- [x] **Phase 5** — Alertes bus factor, onboarding/offboarding, licences SaaS, organigramme, paramètres, dashboard par rôle
+
+## Modules
+
+| Module | Points clés |
+|---|---|
+| Collaborateurs | Fiche RH complète, Teudat Zehut vérifiée, documents chiffrés avec expiration, historique salarial (augmentations, primes, havraa) |
+| Matériel | N° de série unique, garantie & SAV, preuve d'achat, attribution avec **signature au doigt** et PDF de remise généré, restitution signée, QR code |
+| Congés | Types légaux (congés, maladie 1,5 j/mois plafonnée à 90, miluim, maternité, deuil…), semaine dim.–jeu., fêtes juives, planning d'équipe, soldes, alerte de couverture |
+| Avances | Demande, échéancier, validation, versement, export CSV paie |
+| Projets | Owner + suppléant avec niveau d'expertise, carte des responsabilités (graphe + matrice), risques de continuité, backlog Idée → Cadrage → Définition → Revue → Validé → Jira |
+| Licences | Sièges, coût mensuel, renouvellements, révocation intégrée à l'offboarding |
+| Onboarding / offboarding | Checklists générées automatiquement (matériel à récupérer, accès à révoquer inclus) |
+
+> Les règles de congés (`src/lib/leave.ts`) et les dates de fêtes (`src/lib/israel-defaults.ts`) sont fournies à titre de base : faites-les valider par votre conseiller paie / juridique. Tout est modifiable dans **Paramètres**.

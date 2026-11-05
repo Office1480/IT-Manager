@@ -44,6 +44,16 @@ model Organization {
   projects         Project[]
   backlogItems     BacklogItem[]
   backlogComments  BacklogComment[]
+  checklistTasks   ChecklistTask[]
+  licenses         License[]
+  licenseSeats     LicenseSeat[]
+
+  // Intégration Jira
+  jiraBaseUrl        String?
+  jiraEmail          String?
+  jiraTokenEnc       String?
+  jiraDefaultProject String?
+  jiraIssueType      String?  @default("Epic")
 }
 
 model User {
@@ -218,6 +228,8 @@ model Employee {
   deputyProjects   Project[]         @relation("ProjectDeputy")
   backlogItems     BacklogItem[]
   backlogComments  BacklogComment[]
+  checklistTasks   ChecklistTask[]
+  licenseSeats     LicenseSeat[]
 
   @@unique([organizationId, employeeNumber])
   @@index([organizationId, status])
@@ -640,4 +652,75 @@ model BacklogComment {
   author         Employee?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
 
   @@index([itemId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Onboarding / offboarding & licences SaaS
+// ─────────────────────────────────────────────────────────────
+
+enum ChecklistKind {
+  ONBOARDING
+  OFFBOARDING
+}
+
+model ChecklistTask {
+  id             String        @id @default(cuid())
+  organizationId String
+  employeeId     String
+  kind           ChecklistKind
+  title          String
+  category       String        @default("ADMIN")
+  dueDate        DateTime?     @db.Date
+  done           Boolean       @default(false)
+  doneAt         DateTime?
+  doneByName     String?
+  assignmentId   String?
+  seatId         String?
+  position       Int           @default(0)
+  createdAt      DateTime      @default(now())
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee       Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId, kind])
+}
+
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+model License {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  vendor         String?
+  category       String?
+  costPerSeat    Decimal?     @db.Decimal(10, 2)
+  currency       String       @default("USD")
+  billingCycle   BillingCycle @default(MONTHLY)
+  seatsPurchased Int?
+  renewalDate    DateTime?    @db.Date
+  url            String?
+  notes          String?
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  seats          LicenseSeat[]
+
+  @@unique([organizationId, name])
+}
+
+model LicenseSeat {
+  id             String       @id @default(cuid())
+  organizationId String
+  licenseId      String
+  employeeId     String
+  accountEmail   String?
+  assignedAt     DateTime     @default(now())
+  revokedAt      DateTime?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  license        License      @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  employee       Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([licenseId, revokedAt])
+  @@index([employeeId])
 }

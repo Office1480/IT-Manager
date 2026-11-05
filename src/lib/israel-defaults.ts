@@ -1,0 +1,72 @@
+/** Types de congés par défaut pour une entreprise israélienne. Entièrement modifiables ensuite. */
+export const DEFAULT_LEAVE_TYPES = [
+  { code: "VACATION", color: "#6366f1", paid: true, tracksBalance: true, statutory: true, names: { fr: "Congés payés", en: "Annual leave", he: "חופשה שנתית" } },
+  { code: "SICK", color: "#ef4444", paid: true, tracksBalance: true, requiresDocument: true, statutory: true, maxBalance: 90, names: { fr: "Maladie", en: "Sick leave", he: "מחלה" } },
+  { code: "SICK_FAMILY", color: "#f97316", paid: true, deductsFromCode: "SICK", statutory: true, names: { fr: "Maladie enfant / conjoint / parent", en: "Family member sick", he: "מחלת בן משפחה" } },
+  { code: "MILUIM", color: "#16a34a", paid: true, requiresDocument: true, statutory: true, names: { fr: "Miluim (réserve)", en: "Reserve duty (Miluim)", he: "מילואים" } },
+  { code: "MATERNITY", color: "#ec4899", paid: true, statutory: true, names: { fr: "Congé maternité", en: "Maternity leave", he: "חופשת לידה" } },
+  { code: "PATERNITY", color: "#0ea5e9", paid: true, statutory: true, names: { fr: "Congé paternité", en: "Paternity leave", he: "חופשת לידה לאב" } },
+  { code: "BEREAVEMENT", color: "#475569", paid: true, statutory: true, names: { fr: "Deuil (Shiv'a)", en: "Bereavement (Shiva)", he: "אבל (שבעה)" } },
+  { code: "WEDDING", color: "#a855f7", paid: true, names: { fr: "Mariage", en: "Wedding", he: "חתונה" } },
+  { code: "UNPAID", color: "#a1a1aa", paid: false, names: { fr: "Sans solde", en: "Unpaid leave", he: "חופשה ללא תשלום" } },
+  { code: "REMOTE", color: "#14b8a6", paid: true, requiresApproval: false, names: { fr: "Télétravail", en: "Remote work", he: "עבודה מהבית" } },
+] as const;
+
+/** Fêtes israéliennes (jours chômés) et veilles (demi-journées). À vérifier / compléter chaque année. */
+export const ISRAELI_HOLIDAYS: { date: string; kind: "HOLIDAY" | "EVE"; names: { fr: string; en: string; he: string } }[] = [
+  { date: "2026-04-01", kind: "EVE", names: { fr: "Veille de Pessa'h", en: "Passover Eve", he: "ערב פסח" } },
+  { date: "2026-04-02", kind: "HOLIDAY", names: { fr: "Pessa'h", en: "Passover", he: "פסח" } },
+  { date: "2026-04-07", kind: "EVE", names: { fr: "Veille du 7e jour de Pessa'h", en: "Eve of 7th day of Passover", he: "ערב שביעי של פסח" } },
+  { date: "2026-04-08", kind: "HOLIDAY", names: { fr: "7e jour de Pessa'h", en: "7th day of Passover", he: "שביעי של פסח" } },
+  { date: "2026-04-22", kind: "HOLIDAY", names: { fr: "Yom Ha'atsmaout", en: "Independence Day", he: "יום העצמאות" } },
+  { date: "2026-05-21", kind: "EVE", names: { fr: "Veille de Chavouot", en: "Shavuot Eve", he: "ערב שבועות" } },
+  { date: "2026-05-22", kind: "HOLIDAY", names: { fr: "Chavouot", en: "Shavuot", he: "שבועות" } },
+  { date: "2026-09-11", kind: "EVE", names: { fr: "Veille de Roch Hachana", en: "Rosh Hashana Eve", he: "ערב ראש השנה" } },
+  { date: "2026-09-12", kind: "HOLIDAY", names: { fr: "Roch Hachana", en: "Rosh Hashana", he: "ראש השנה" } },
+  { date: "2026-09-13", kind: "HOLIDAY", names: { fr: "Roch Hachana (2e jour)", en: "Rosh Hashana (day 2)", he: "ראש השנה ב׳" } },
+  { date: "2026-09-20", kind: "EVE", names: { fr: "Veille de Yom Kippour", en: "Yom Kippur Eve", he: "ערב יום כיפור" } },
+  { date: "2026-09-21", kind: "HOLIDAY", names: { fr: "Yom Kippour", en: "Yom Kippur", he: "יום כיפור" } },
+  { date: "2026-09-25", kind: "EVE", names: { fr: "Veille de Souccot", en: "Sukkot Eve", he: "ערב סוכות" } },
+  { date: "2026-09-26", kind: "HOLIDAY", names: { fr: "Souccot", en: "Sukkot", he: "סוכות" } },
+  { date: "2026-10-02", kind: "EVE", names: { fr: "Veille de Sim'hat Torah", en: "Simchat Torah Eve", he: "ערב שמחת תורה" } },
+  { date: "2026-10-03", kind: "HOLIDAY", names: { fr: "Sim'hat Torah", en: "Simchat Torah", he: "שמחת תורה" } },
+  { date: "2027-04-21", kind: "EVE", names: { fr: "Veille de Pessa'h", en: "Passover Eve", he: "ערב פסח" } },
+  { date: "2027-04-22", kind: "HOLIDAY", names: { fr: "Pessa'h", en: "Passover", he: "פסח" } },
+  { date: "2027-04-27", kind: "EVE", names: { fr: "Veille du 7e jour de Pessa'h", en: "Eve of 7th day of Passover", he: "ערב שביעי של פסח" } },
+  { date: "2027-04-28", kind: "HOLIDAY", names: { fr: "7e jour de Pessa'h", en: "7th day of Passover", he: "שביעי של פסח" } },
+  { date: "2027-05-12", kind: "HOLIDAY", names: { fr: "Yom Ha'atsmaout", en: "Independence Day", he: "יום העצמאות" } },
+  { date: "2027-06-10", kind: "EVE", names: { fr: "Veille de Chavouot", en: "Shavuot Eve", he: "ערב שבועות" } },
+  { date: "2027-06-11", kind: "HOLIDAY", names: { fr: "Chavouot", en: "Shavuot", he: "שבועות" } },
+  { date: "2027-10-01", kind: "EVE", names: { fr: "Veille de Roch Hachana", en: "Rosh Hashana Eve", he: "ערב ראש השנה" } },
+  { date: "2027-10-02", kind: "HOLIDAY", names: { fr: "Roch Hachana", en: "Rosh Hashana", he: "ראש השנה" } },
+  { date: "2027-10-03", kind: "HOLIDAY", names: { fr: "Roch Hachana (2e jour)", en: "Rosh Hashana (day 2)", he: "ראש השנה ב׳" } },
+  { date: "2027-10-10", kind: "EVE", names: { fr: "Veille de Yom Kippour", en: "Yom Kippur Eve", he: "ערב יום כיפור" } },
+  { date: "2027-10-11", kind: "HOLIDAY", names: { fr: "Yom Kippour", en: "Yom Kippur", he: "יום כיפור" } },
+  { date: "2027-10-15", kind: "EVE", names: { fr: "Veille de Souccot", en: "Sukkot Eve", he: "ערב סוכות" } },
+  { date: "2027-10-16", kind: "HOLIDAY", names: { fr: "Souccot", en: "Sukkot", he: "סוכות" } },
+  { date: "2027-10-22", kind: "EVE", names: { fr: "Veille de Sim'hat Torah", en: "Simchat Torah Eve", he: "ערב שמחת תורה" } },
+  { date: "2027-10-23", kind: "HOLIDAY", names: { fr: "Sim'hat Torah", en: "Simchat Torah", he: "שמחת תורה" } },
+];
+
+export const DEFAULT_ONBOARDING = [
+  { title: "Contrat de travail signé", category: "HR" },
+  { title: "Formulaire 101 rempli", category: "HR" },
+  { title: "Copie de la Teudat Zehut", category: "HR" },
+  { title: "Coordonnées bancaires", category: "HR" },
+  { title: "Inscription à la caisse de retraite", category: "HR" },
+  { title: "Création du compte e-mail", category: "IT" },
+  { title: "Préparation et remise du poste de travail", category: "IT" },
+  { title: "Accès aux outils (Slack, Jira, GitHub…)", category: "IT" },
+  { title: "Badge d'accès aux locaux", category: "ADMIN" },
+  { title: "Présentation à l'équipe et parrain désigné", category: "TEAM" },
+];
+
+export const DEFAULT_OFFBOARDING = [
+  { title: "Lettre de démission / licenciement archivée", category: "HR" },
+  { title: "Solde de tout compte et formulaire 161", category: "HR" },
+  { title: "Libération des fonds de pension (מכתב שחרור)", category: "HR" },
+  { title: "Désactivation du compte e-mail et SSO", category: "IT" },
+  { title: "Transfert des responsabilités projets (owner / suppléant)", category: "TEAM" },
+  { title: "Récupération du badge", category: "ADMIN" },
+  { title: "Entretien de départ", category: "HR" },
+];

@@ -6,7 +6,7 @@ import { requireContext } from "@/server/context";
 import { canSeeDocuments, getEmployee, listCompensation, listDocuments } from "@/server/employees";
 import { Avatar } from "@/components/ui/avatar";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
-import { DescList, EmptyState } from "@/components/ui/misc";
+import { DescList } from "@/components/ui/misc";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/ui/url-tabs";
 import { Secret } from "@/components/ui/secret";
@@ -15,6 +15,15 @@ import { EmployeeActionsMenu } from "@/components/people/employee-actions-menu";
 import { DocumentsPanel } from "@/components/documents/documents-panel";
 import { CompensationPanel } from "@/components/people/compensation-panel";
 import { fmtDate } from "@/lib/format";
+import { employeeAssignments } from "@/server/assets";
+import { EmployeeEquipment } from "@/components/people/employee-equipment";
+import { EmployeeLeave } from "@/components/leave/employee-leave";
+import { balanceViews, requestRows } from "@/server/leave-view";
+import { leaveTypes } from "@/server/leave";
+import { lname } from "@/lib/i18n-json";
+import { db } from "@/lib/db";
+import { EmployeeProjects } from "@/components/projects/employee-projects";
+import { ChecklistPanel } from "@/components/checklist/checklist-panel";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const ctx = await requireContext();
@@ -30,7 +39,28 @@ export default async function EmployeePage({ params }: { params: Promise<{ local
   const e = await getEmployee(ctx, id);
   const showDocs = await canSeeDocuments(ctx, id);
   const showComp = ctx.can("compensation.read") || e.self;
-  const [docs, comp] = await Promise.all([showDocs ? listDocuments(ctx, { employeeId: id }) : [], showComp ? listCompensation(ctx, id) : []]);
+  const showAssets = ctx.can("asset.read") || e.self;
+  const [docs, comp, assignments] = await Promise.all([
+    showDocs ? listDocuments(ctx, { employeeId: id }) : [],
+    showComp ? listCompensation(ctx, id) : [],
+    showAssets ? employeeAssignments(ctx, id) : [],
+  ]);
+  const projects = await db.project.findMany({
+    where: { organizationId: ctx.orgId, OR: [{ ownerId: id }, { deputyId: id }] },
+    include: { owner: { select: { firstName: true, lastName: true } }, deputy: { select: { firstName: true, lastName: true } } },
+  });
+  const projectRows = projects.map((p) => {
+    const owner = p.ownerId === id;
+    const other = owner ? p.deputy : p.owner;
+    return { id: p.id, name: p.name, key: p.key, color: p.color, role: (owner ? "owner" : "deputy") as "owner" | "deputy", level: owner ? p.ownerExpertise : p.deputyExpertise, other: other ? `${other.firstName} ${other.lastName}` : null };
+  });
+  const [tasks, seats] = await Promise.all([
+    ctx.can("employee.write") ? db.checklistTask.findMany({ where: { employeeId: id }, orderBy: { position: "asc" } }) : [],
+    showAssets ? db.licenseSeat.findMany({ where: { employeeId: id, revokedAt: null }, include: { license: { select: { id: true, name: true, vendor: true } } } }) : [],
+  ]);
+  const kinds = (["OFFBOARDING", "ONBOARDING"] as const).filter((k) => tasks.some((x) => x.kind === k) || (k === "ONBOARDING" ? e.status === "ONBOARDING" : e.status === "OFFBOARDING"));
+  const showLeave = e.self || ctx.can("leave.configure") || ctx.role === "MANAGER";
+  const [balances, requests, types] = showLeave ? await Promise.all([balanceViews(ctx, id, locale), requestRows(ctx, id, locale), leaveTypes(ctx)]) : [[], [], []];
 
   const now = new Date();
   const since = e.seniorityDate ?? e.startDate;
@@ -87,14 +117,17 @@ export default async function EmployeePage({ params }: { params: Promise<{ local
           <TabsTrigger value="overview"><UserRound />{t("people.tabs.overview")}</TabsTrigger>
           {showDocs && <TabsTrigger value="documents"><FileText />{t("people.tabs.documents")}<span className="text-xs text-fg-subtle">{docs.length}</span></TabsTrigger>}
           {showComp && <TabsTrigger value="compensation"><TrendingUp />{t("people.tabs.compensation")}</TabsTrigger>}
-          <TabsTrigger value="equipment"><Laptop />{t("people.tabs.equipment")}</TabsTrigger>
-          <TabsTrigger value="leave"><CalendarDays />{t("people.tabs.leave")}</TabsTrigger>
-          <TabsTrigger value="projects"><FolderKanban />{t("people.tabs.projects")}</TabsTrigger>
+          {showAssets && <TabsTrigger value="equipment"><Laptop />{t("people.tabs.equipment")}<span className="text-xs text-fg-subtle">{assignments.filter((a) => !a.returnedAt).length}</span></TabsTrigger>}
+          {showLeave && <TabsTrigger value="leave"><CalendarDays />{t("people.tabs.leave")}</TabsTrigger>}
+          <TabsTrigger value="projects"><FolderKanban />{t("people.tabs.projects")}<span className="text-xs text-fg-subtle">{projectRows.length}</span></TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
             <div className="space-y-5 xl:col-span-2">
+              {kinds.map((k) => (
+                <ChecklistPanel key={k} employeeId={e.id} kind={k} canWrite={ctx.can("employee.write")} tasks={tasks.filter((x) => x.kind === k)} />
+              ))}
               <Card>
                 <CardHeader title={t("people.sections.identity")} />
                 <CardBody>
@@ -199,11 +232,31 @@ export default async function EmployeePage({ params }: { params: Promise<{ local
           </TabsContent>
         )}
 
-        {(["equipment", "leave", "projects"] as const).map((k) => (
-          <TabsContent key={k} value={k}>
-            <Card><EmptyState title={t("placeholder.title")} description={t("placeholder.description")} /></Card>
+        {showAssets && (
+          <TabsContent value="equipment">
+            <EmployeeEquipment rows={assignments} canSign={e.self || ctx.can("asset.write")} signerName={`${e.firstName} ${e.lastName}`} currency={ctx.org.currency} />
+            {seats.length > 0 && (
+              <Card className="mt-5">
+                <CardHeader title={t("nav.licenses")} />
+                <ul className="divide-y divide-border">
+                  {seats.map((s) => (
+                    <li key={s.id}><Link href={`/licenses/${s.license.id}`} className="flex items-center justify-between px-5 py-2.5 text-[13px] hover:bg-surface-hover"><span className="font-medium">{s.license.name}</span><span className="text-xs text-fg-subtle">{s.accountEmail}</span></Link></li>
+                  ))}
+                </ul>
+              </Card>
+            )}
           </TabsContent>
-        ))}
+        )}
+
+        {showLeave && (
+          <TabsContent value="leave">
+            <EmployeeLeave employeeId={e.id} balances={balances} requests={requests} canAdjust={ctx.can("leave.configure")} types={types.filter((x) => x.tracksBalance).map((x) => ({ id: x.id, name: lname(x.names, locale) }))} />
+          </TabsContent>
+        )}
+
+        <TabsContent value="projects">
+          <EmployeeProjects rows={projectRows} />
+        </TabsContent>
       </UrlTabs>
     </div>
   );
