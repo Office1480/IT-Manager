@@ -4,7 +4,7 @@ import { jwtVerify } from "jose";
 import { routing } from "./i18n/routing";
 
 const intl = createIntlMiddleware(routing);
-const PUBLIC = [/^\/(fr|en|he)\/login\/?$/];
+const PUBLIC = [/^\/(fr|en|he)\/(login|setup)\/?$/];
 
 async function isAuthenticated(req: NextRequest) {
   const token = req.cookies.get("itm_session")?.value;

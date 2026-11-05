@@ -1,9 +1,14 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
 import { LoginForm } from "./login-form";
+
+export const dynamic = "force-dynamic";
 
 export default async function LoginPage({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ next?: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  if ((await db.user.count()) === 0) redirect(`/${locale}/setup`);
   const { next } = await searchParams;
   const t = await getTranslations("auth");
   return (

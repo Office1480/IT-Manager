@@ -787,5 +787,15 @@
       "configured": "Configuré",
       "notConfigured": "Non configuré"
     }
+  },
+  "setup": {
+    "title": "Bienvenue sur IT Manager",
+    "subtitle": "Créez votre organisation et votre compte propriétaire.",
+    "orgName": "Nom de l'entreprise",
+    "name": "Votre nom complet",
+    "email": "Votre e-mail",
+    "password": "Mot de passe (8 caractères min.)",
+    "submit": "Créer mon espace",
+    "demo": "Charger aussi des données de démonstration"
   }
 }

@@ -787,5 +787,15 @@
       "configured": "Configured",
       "notConfigured": "Not configured"
     }
+  },
+  "setup": {
+    "title": "Welcome to IT Manager",
+    "subtitle": "Create your organization and owner account.",
+    "orgName": "Company name",
+    "name": "Your full name",
+    "email": "Your email",
+    "password": "Password (min. 8 characters)",
+    "submit": "Create my workspace",
+    "demo": "Also load demo data"
   }
 }

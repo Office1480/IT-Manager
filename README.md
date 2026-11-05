@@ -25,6 +25,8 @@ Comptes de démo (mot de passe `admin1234`) :
 
 Application complète en conteneur : `docker compose --profile app up -d --build`.
 
+Déploiement en ligne (Railway, ~10 min) : voir [DEPLOY.md](DEPLOY.md).
+
 ## Stack
 
 Next.js 15 (App Router, Server Actions) · React 19 · TypeScript strict · PostgreSQL + Prisma · Tailwind CSS 4 · Radix UI · next-intl · cmdk.
